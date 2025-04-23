@@ -7,13 +7,14 @@ project(Setker)
 # Establecer el estándar de C++
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Añadir los directorios de los encabezados
 include_directories(src/def src/commands)
 
 # Añadir los archivos fuente
 set(SOURCES
-    src/main.cpp
+    main.cpp
     src/commands/Tokenizer.cpp
     src/commands/Parser.cpp
     src/def/Keywords.cpp

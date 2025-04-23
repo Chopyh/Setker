@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "commands/Tokenizer.h"
-#include "commands/Parser.h"
+#include "src/commands/Tokenizer.h"
+#include "src/commands/Parser.h"
 
 const std::vector<std::string> valid_commands = {"tokenize", "parse", "help"};
 
