@@ -1,37 +1,82 @@
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "commands/Tokenizer.h"
+#include "commands/Parser.h"
+
+const std::vector<std::string> valid_commands = {"tokenize", "parse", "help"};
+
+bool is_valid_command(const std::string& command) {
+    return std::find(valid_commands.begin(), valid_commands.end(), command) != valid_commands.end();
+}
 
 std::string read_file_contents(const std::string& filename);
 
-int main(int argc, char *argv[]) {
-    int exitCode = 0;
-    // Disable output buffering
-    std::cout << std::unitbuf;
-    std::cerr << std::unitbuf;
+void print_help() {
+    std::cout << "Available commands:" << std::endl;
+    std::cout << "  tokenize <filename>  - Tokenize the input file" << std::endl;
+    std::cout << "  parse <filename>     - Parse the input file" << std::endl;
+    std::cout << "  help                 - Show this help message" << std::endl;
+}
 
-    if (argc < 3) {
-        std::cerr << "Usage: ./your_program tokenize <filename>" << std::endl;
+bool validate_arguments(int argc, char* argv[], std::string& command, std::string& filename) {
+    if (argc < 2) {
+        std::cerr << "Usage: ./Setker <command> <filename>" << std::endl;
+        std::cerr << "Or use 'help' for more information." << std::endl;
+        return false;
+    }
+
+    command = argv[1];
+
+    if (!is_valid_command(command)) {
+        std::cerr << "Unknown command: " << command << std::endl;
+        std::cerr << "Use 'help' for a list of available commands." << std::endl;
+        return false;
+    }
+
+    if (command == "help") {
+        print_help();
+        return false;
+    }
+
+    if (argc < 3 && command != "help") {
+        std::cerr << "Error: Missing filename argument." << std::endl;
+        return false;
+    }
+
+    filename = argc >= 3 ? argv[2] : "";
+    return true;
+}
+
+int handle_command(const std::string& command, const std::string& filename) {
+    if (command == "tokenize") {
+        std::string file_contents = read_file_contents(filename);
+        return Tokenizer::tokenize(file_contents);
+    } else if (command == "parse") {
+        std::string file_contents = read_file_contents(filename);
+        Tokenizer::tokenize(file_contents);
+        auto tokens = Tokenizer::getTokens();
+        return Parser::parse(tokens);
+    } else {
+        std::cerr << "Unknown command: " << command << std::endl;
+        std::cerr << "Use 'help' for a list of available commands." << std::endl;
+        return 1;
+    }
+}
+
+int main(int argc, char* argv[]) {
+    std::string command, filename;
+
+    if (!validate_arguments(argc, argv, command, filename)) {
         return 1;
     }
 
-    const std::string command = argv[1];
-
-    if (command == "tokenize") {
-        std::string file_contents = read_file_contents(argv[2]);
-
-        using namespace Tokenizer;
-        exitCode = tokenize(file_contents);
-    } else {
-        std::cerr << "Unknown command: " << command << std::endl;
-        exitCode =  1;
-    }
-
-    return exitCode;
+    return handle_command(command, filename);
 }
 
 std::string read_file_contents(const std::string& filename) {

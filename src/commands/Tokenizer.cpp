@@ -53,6 +53,10 @@ namespace Tokenizer {
         }
     }
 
+    const std::vector<Token>& getTokens() {
+        return tokens;
+    }
+
     int tokenize(const std::string& file_contents) {
         for (int i = 0; i < file_contents.size(); i++) {
             switch (file_contents[i]) {

@@ -15,6 +15,7 @@ include_directories(src/def src/commands)
 set(SOURCES
     src/main.cpp
     src/commands/Tokenizer.cpp
+    src/commands/Parser.cpp
     src/def/Keywords.cpp
     src/def/Tokens.cpp
 )
