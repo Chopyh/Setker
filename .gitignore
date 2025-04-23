@@ -1,0 +1,25 @@
+# Archivos y carpetas generados por CMake
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Archivos de salida binarios
+Setker
+
+# Archivos temporales y de depuración
+*.o
+*.obj
+*.log
+*.tmp
+*.d
+*.dSYM/
+
+# Archivos de configuración de VSCode
+.vscode/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
