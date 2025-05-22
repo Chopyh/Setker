@@ -1,8 +1,13 @@
+//
+// Created by javie on 01/02/2025.
+//
+
 #ifndef KEWYORDS_H
 #define KEWYORDS_H
 
-#include <string_view>
+#include <string>
 #include "Tokens.h"
+#include <string_view>
 
 class Keywords {
 public:
@@ -13,6 +18,7 @@ public:
     static constexpr std::string_view FOR = "for";
     static constexpr std::string_view FUNCTION = "fn";
     static constexpr std::string_view RETURN = "return";
+
 
     static TokenType valorateKeyword(std::string keyword);
 };

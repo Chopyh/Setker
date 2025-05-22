@@ -5,22 +5,19 @@ cmake_minimum_required(VERSION 3.10)
 project(Setker)
 
 # Establecer el estándar de C++
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Añadir los directorios de los encabezados
-include_directories(src/def src/commands)
+# Incluir directorios de cabeceras
+include_directories(${PROJECT_SOURCE_DIR}/src/def ${PROJECT_SOURCE_DIR}/src/commands)
 
-# Añadir los archivos fuente
-set(SOURCES
-    src/main.cpp
-    src/commands/Tokenizer.cpp
-    src/def/Keywords.cpp
-    src/def/Tokens.cpp
+# Reunir todos los archivos fuente (.cpp) bajo src recursivamente
+file(GLOB_RECURSE SOURCES
+    ${PROJECT_SOURCE_DIR}/src/*.cpp
 )
 
-# Crear el ejecutable
+# Crear el ejecutable a partir de SOURCES
 add_executable(Setker ${SOURCES})
 
-# Enlazar con la biblioteca estándar de C++
-target_link_libraries(Setker stdc++)
+# Enlazar con la biblioteca estándar de C++ (implícito en la mayoría de sistemas)
+target_link_libraries(Setker PRIVATE stdc++)

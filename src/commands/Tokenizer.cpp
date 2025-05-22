@@ -1,15 +1,29 @@
 #include "Tokenizer.h"
+#include "Parser.h"
 
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #include "../def/Tokens.h"
 #include "../def/Keywords.h"
 
 namespace Tokenizer {
-    auto tokens = std::vector<Token>();
+    auto tokens = std::pmr::vector<Token>();
     int line = 1;
     int exitCode = 0;
+
+    bool isLetter(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    }
+
+    bool isAlphaNumeric(char c) {
+        return isLetter(c) || isdigit(c);
+    }
+
+    bool isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
 
     void valorateWhitespaces(const std::string &file_contents, int &i) {
         for (int j = i + 1; j < file_contents.size(); j++) {
@@ -19,41 +33,38 @@ namespace Tokenizer {
             }
         }
     }
-    void valorateString(const std::string &file_contents, int &i) {
-        for (int j = i + 1; j < file_contents.size(); j++) {
-            if (file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t') {
-                auto keyword = file_contents.substr(i, j - i);
 
+    void valorateString(const std::string &file_contents, int &i) {
+        for (int j = i + 1; j <= file_contents.size(); j++) {
+            if (j == file_contents.size() || file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t' || !isAlphaNumeric(file_contents[j])) {
+                auto keyword = file_contents.substr(i, j - i);
                 tokens.emplace_back(Keywords::valorateKeyword(keyword), keyword);
                 i = j - 1;
                 break;
             }
         }
     }
-    void valorateNumber(const std::string &file_contents, int &i) {
-        for (int j = i + 1; j < file_contents.size(); j++) {
-            if (file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t') {
-                auto number = std::stod(file_contents.substr(i, j - i));
 
-                tokens.emplace_back(TokenType::NUMBER, std::to_string(number), std::to_string(number));
+    void valorateNumber(const std::string &file_contents, int &i) {
+        for (int j = i + 1; j <= file_contents.size(); j++) {
+            if (j == file_contents.size() || file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t' || !isDigit(file_contents[j])) {
+                if (file_contents[j] == '.') continue;
+                std::string lexeme = file_contents.substr(i, j - i); // Toma el número tal cual del texto
+                auto number = std::stod(lexeme); // El literal sigue siendo double
+                tokens.emplace_back(TokenType::NUMBER, lexeme, number);
                 i = j - 1;
                 break;
             }
         }
     }
-    bool isLetter(const char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-    }
-    bool isDigit(const char c) {
-        return c >= '0' && c <= '9';
-    }
+
     void printTokens() {
         for (auto &token : tokens) {
-            token.print();
+            std::cout << token.print() << std::endl;
         }
     }
 
-    int tokenize(const std::string& file_contents) {
+    void valorateTokens(const std::string& file_contents) {
         for (int i = 0; i < file_contents.size(); i++) {
             switch (file_contents[i]) {
                 case '+':
@@ -76,6 +87,9 @@ namespace Tokenizer {
                         }
                     } else tokens.emplace_back(TokenType::SLASH, "/");
                     break;
+                case '%':
+                    tokens.emplace_back(TokenType::MOD, "%");
+                    break;
                 case '=':
                     if (file_contents[i + 1] == '=') {
                         tokens.emplace_back(TokenType::EQUAL_EQUAL, "==");
@@ -84,19 +98,28 @@ namespace Tokenizer {
                         tokens.emplace_back(TokenType::EQUAL, "=");
                     }
                     break;
-                case '"':
-                    for (int j = i + 1; j <= file_contents.size(); j++) {
+                case '"': {
+                    int j = i + 1;
+                    std::string str;
+                    for (; j < file_contents.size(); ++j) {
                         if (file_contents[j] == '"') {
-                            tokens.emplace_back(TokenType::STRING, file_contents.substr(i + 1, j - i - 1));
                             break;
                         }
-                        if (file_contents[j] == '\n' || j == file_contents.size()) {
-                            std::cerr << "[line " << line << "] Error: Unterminated string." << std::endl;
-                            exitCode = 65;
-                            break;
+                        if (file_contents[j] == '\n') {
+                            line += 1;
                         }
+                        str += file_contents[j];
                     }
+                    if (j >= file_contents.size()) {
+                        std::cerr << "[line " << line << "] Error: Unterminated string." << std::endl;
+                        exitCode = 65;
+                        i = j;
+                        break;
+                    }
+                    tokens.emplace_back(TokenType::STRING, str, str);
+                    i = j;
                     break;
+                }
                 case ';':
                     tokens.emplace_back(TokenType::SEMICOLON, ";");
                     break;
@@ -139,6 +162,9 @@ namespace Tokenizer {
                     if (file_contents[i + 1] == '=') {
                         tokens.emplace_back(TokenType::GREATER_EQUAL, ">=");
                         i++;
+                    } else if (file_contents[i + 1] == '|'){
+
+
                     } else {
                         tokens.emplace_back(TokenType::GREATER, ">");
                     }
@@ -172,9 +198,25 @@ namespace Tokenizer {
             }
         }
         tokens.emplace_back(TokenType::EOF_OF_FILE, "");
+    }
+
+    int tokenize(const std::string& file_contents) {
+        valorateTokens(file_contents);
 
         printTokens();
 
         return exitCode;
+    }
+
+    void parse(const std::pmr::vector<Token>& tokens) {
+        Parser::parse(tokens);
+    }
+
+    Result getTokens(const std::string& file_contents) {
+        // Reiniciar estado
+        tokens.clear();
+        exitCode = 0;
+        valorateTokens(file_contents);
+        return { tokens, exitCode };
     }
 }
