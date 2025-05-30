@@ -1,23 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
 
+project(Setker LANGUAGES CXX)
 
-# Nombre del proyecto
-project(Setker)
-
-# Establecer el estándar de C++
+# Estándar de C++
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Incluir directorios de cabeceras
-include_directories(${PROJECT_SOURCE_DIR}/src/def ${PROJECT_SOURCE_DIR}/src/commands)
-
-# Reunir todos los archivos fuente (.cpp) bajo src recursivamente
+# Incluir rutas de encabezados
+# Usar target_include_directories para el ejecutable
 file(GLOB_RECURSE SOURCES
-    ${PROJECT_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
 )
 
-# Crear el ejecutable a partir de SOURCES
-add_executable(Setker ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-# Enlazar con la biblioteca estándar de C++ (implícito en la mayoría de sistemas)
-target_link_libraries(Setker PRIVATE stdc++)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/def
+    ${CMAKE_SOURCE_DIR}/src/commands
+)
+
+# Configurar carpeta de salida para bins:
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  # Para generadores single-config (Makefile, Ninja)
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/$<CONFIG>
+  # Para generadores multi-config (Visual Studio)
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${CMAKE_SOURCE_DIR}/bin/Debug
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/Release
+)
