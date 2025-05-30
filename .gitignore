@@ -7,6 +7,7 @@ Makefile
 compile_commands.json
 
 # Archivos de salida binarios
+bin/
 Setker
 
 # Archivos temporales y de depuración
@@ -23,3 +24,6 @@ Setker
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+
+# Archivos de ejemplo
+examples/
