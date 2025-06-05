@@ -1,3 +1,13 @@
+/**
+ * @file ASTNode.cpp
+ * @brief Implementación de la clase ASTNode y sus métodos
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación de todos los métodos de la clase ASTNode,
+ * incluyendo la lógica para la representación textual del AST y manejo de nodos hijos.
+ */
+
 #include "ASTNode.h"
 #include <string>
 #include <sstream>

@@ -1,3 +1,14 @@
+/**
+ * @file Environment.cpp
+ * @brief Implementación del sistema de entornos para variables
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación de la clase Environment,
+ * proporcionando funcionalidad para crear, buscar y modificar variables
+ * en un sistema de entornos anidados con scoping léxico.
+ */
+
 #include "Environment.h"
 #include <stdexcept>
 

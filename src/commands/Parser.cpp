@@ -1,3 +1,38 @@
+/**
+ * @file Parser.cpp
+ * @brief Implementación del analizador sintáctico recursivo descendente
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación completa del parser recursivo
+ * descendente para el lenguaje Setker. Maneja precedencia de operadores,
+ * construcción del AST y todas las construcciones sintácticas del lenguaje.
+ * 
+ * Gramática soportada (simplificada):
+ * program        → statement* EOF
+ * statement      → funDecl | varDecl | ifStmt | whileStmt | forStmt | block | printStmt | returnStmt | exprStmt
+ * funDecl        → "fun" IDENTIFIER "(" parameters? ")" block
+ * varDecl        → "var" IDENTIFIER ( "=" expression )? ";"
+ * ifStmt         → "if" "(" expression ")" statement ( "else" statement )?
+ * whileStmt      → "while" "(" expression ")" statement
+ * forStmt        → "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement
+ * block          → "{" statement* "}"
+ * printStmt      → "print" expression ";"
+ * returnStmt     → "return" expression? ";"
+ * exprStmt       → expression ";"
+ * expression     → assignment
+ * assignment     → IDENTIFIER "=" assignment | logic_or
+ * logic_or       → logic_and ( "or" logic_and )*
+ * logic_and      → equality ( "and" equality )*
+ * equality       → comparison ( ( "!=" | "==" ) comparison )*
+ * comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )*
+ * addition       → multiplication ( ( "-" | "+" ) multiplication )*
+ * multiplication → unary ( ( "/" | "*" | "%" ) unary )*
+ * unary          → ( "!" | "-" ) unary | call
+ * call           → primary ( "(" arguments? ")" )*
+ * primary        → NUMBER | STRING | "true" | "false" | "nil" | IDENTIFIER | "(" expression ")"
+ */
+
 #include "Parser.h"
 #include "../def/ErrorCode.h"
 #include <iostream>
@@ -6,23 +41,24 @@
 #include <stdexcept>
 
 namespace Parser {
-    // Declaraciones adelantadas para niveles de precedencia
+    // Declaraciones adelantadas para los diferentes niveles de precedencia
     static std::unique_ptr<ASTNode> parseEquality(const std::pmr::vector<Token>& tokens, size_t& pos);
     static std::unique_ptr<ASTNode> parseComparison(const std::pmr::vector<Token>& tokens, size_t& pos);
     static std::unique_ptr<ASTNode> parseAdditive(const std::pmr::vector<Token>& tokens, size_t& pos);
     static std::unique_ptr<ASTNode> parseExpression(const std::pmr::vector<Token>& tokens, size_t& pos);
-    // Nuevo: lógica AND (izquierda asociativa)
     static std::unique_ptr<ASTNode> parseAnd(const std::pmr::vector<Token>& tokens, size_t& pos);
-    // Lógica OR (izquierda asociativa)
     static std::unique_ptr<ASTNode> parseOr(const std::pmr::vector<Token>& tokens, size_t& pos);
-    // Asignación (right-associative)
     static std::unique_ptr<ASTNode> parseAssignment(const std::pmr::vector<Token>& tokens, size_t& pos);
     static std::unique_ptr<ASTNode> parseStatement(const std::pmr::vector<Token>& tokens, size_t& pos);
     static std::unique_ptr<ASTNode> parsePrimary(const std::pmr::vector<Token>& tokens, size_t& pos);
-    // Llamadas de función: postfijo a primary
     static std::unique_ptr<ASTNode> parseCall(const std::pmr::vector<Token>& tokens, size_t& pos);
 
-    // Función para parsear operadores unarios (! y -)
+    /**
+     * @brief Analiza operadores unarios (! y -)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la expresión unaria
+     */
     static std::unique_ptr<ASTNode> parseUnary(const std::pmr::vector<Token>& tokens, size_t& pos) {
         if (pos < tokens.size()) {
             auto type = tokens[pos].getType();
@@ -38,7 +74,13 @@ namespace Parser {
         return parseCall(tokens, pos);
     }
 
-    // Agrupación, literales y variables en parsePrimary
+    /**
+     * @brief Analiza expresiones primarias (literales, identificadores, agrupación)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la expresión primaria
+     * @throws Error Si encuentra un token inesperado
+     */
     static std::unique_ptr<ASTNode> parsePrimary(const std::pmr::vector<Token>& tokens, size_t& pos) {
         const Token& token = tokens[pos];
         
@@ -99,7 +141,12 @@ namespace Parser {
         throw Error(ErrorCodes::ParseError, "Error at '" + token.getLexeme() + "': Expect expression.\n");
     }
 
-    // Implementa llamada nativa: primary ( '(' [args] ')' )* 
+    /**
+     * @brief Analiza llamadas a función con argumentos
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la llamada
+     */
     static std::unique_ptr<ASTNode> parseCall(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto expr = parsePrimary(tokens, pos);
         while (pos < tokens.size() && tokens[pos].getType() == TokenType::L_PAREN) {
@@ -128,7 +175,12 @@ namespace Parser {
         return expr;
     }
 
-    // Implementación de asignación: IDENTIFIER '=' assignment
+    /**
+     * @brief Analiza asignaciones (right-associative)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la asignación
+     */
     static std::unique_ptr<ASTNode> parseAssignment(const std::pmr::vector<Token>& tokens, size_t& pos) {
         // Parse OR expressions first
         auto expr = parseOr(tokens, pos);
@@ -147,7 +199,12 @@ namespace Parser {
         return expr;
     }
 
-    // Implementación de OR: and ( 'or' and )*
+    /**
+     * @brief Analiza operadores OR lógicos (left-associative)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la expresión OR
+     */
     static std::unique_ptr<ASTNode> parseOr(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseAnd(tokens, pos);
         while (pos < tokens.size() && tokens[pos].getType() == TokenType::OR) {
@@ -162,7 +219,12 @@ namespace Parser {
         return left;
     }
 
-    // Implementación de AND: equality ( 'and' equality )*
+    /**
+     * @brief Analiza operadores AND lógicos (left-associative)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la expresión AND
+     */
     static std::unique_ptr<ASTNode> parseAnd(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseEquality(tokens, pos);
         while (pos < tokens.size() && tokens[pos].getType() == TokenType::AND) {
@@ -177,7 +239,12 @@ namespace Parser {
         return left;
     }
 
-    // Función para parsear operaciones multiplicativas (*, /, %)
+    /**
+     * @brief Analiza operaciones multiplicativas (*, /, %)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la operación multiplicativa
+     */
     static std::unique_ptr<ASTNode> parseMultiplicative(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseUnary(tokens, pos);
         while (pos < tokens.size() &&
@@ -193,7 +260,12 @@ namespace Parser {
         return left;
     }
 
-    // Función para parsear operaciones aditivas (+, -)
+    /**
+     * @brief Analiza operaciones aditivas (+, -)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la operación aditiva
+     */
     static std::unique_ptr<ASTNode> parseAdditive(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseMultiplicative(tokens, pos);
         while (pos < tokens.size() &&
@@ -209,7 +281,12 @@ namespace Parser {
         return left;
     }
 
-    // Función para parsear comparaciones (<, <=, >, >=)
+    /**
+     * @brief Analiza operaciones de comparación (<, <=, >, >=)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la comparación
+     */
     static std::unique_ptr<ASTNode> parseComparison(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseAdditive(tokens, pos);
         while (pos < tokens.size() &&
@@ -226,7 +303,12 @@ namespace Parser {
         return left;
     }
 
-    // Función para parsear igualdad (==, !=)
+    /**
+     * @brief Analiza operaciones de igualdad (==, !=)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la igualdad
+     */
     static std::unique_ptr<ASTNode> parseEquality(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto left = parseComparison(tokens, pos);
         while (pos < tokens.size() &&
@@ -242,11 +324,30 @@ namespace Parser {
         return left;
     }
 
-    // Ahora parseExpression será el punto de entrada para expresiones
+    /**
+     * @brief Punto de entrada para analizar expresiones
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la expresión
+     */
     static std::unique_ptr<ASTNode> parseExpression(const std::pmr::vector<Token>& tokens, size_t& pos) {
         return parseAssignment(tokens, pos);
     }
 
+    /**
+     * @brief Analiza declaraciones y instrucciones
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo AST para la declaración
+     * 
+     * Maneja todos los tipos de declaraciones del lenguaje:
+     * - Declaraciones de función
+     * - Declaraciones de variable
+     * - Instrucciones de control (if, while, for)
+     * - Bloques de código
+     * - Instrucciones print y return
+     * - Expresiones
+     */
     static std::unique_ptr<ASTNode> parseStatement(const std::pmr::vector<Token>& tokens, size_t& pos) {
         // Manejar sentencia return
         if (pos < tokens.size() && tokens[pos].getType() == TokenType::RETURN) {
@@ -498,7 +599,12 @@ namespace Parser {
         return expr;
     }
 
-    // Nuevo: parsear una secuencia de statements
+    /**
+     * @brief Analiza un programa completo (secuencia de declaraciones)
+     * @param tokens Vector de tokens
+     * @param pos Posición actual (modificada por referencia)
+     * @return std::unique_ptr<ASTNode> Nodo raíz del AST
+     */
     static std::unique_ptr<ASTNode> parseProgram(const std::pmr::vector<Token>& tokens, size_t& pos) {
         auto root = std::make_unique<ASTNode>(ASTNode::Type::Program, "program");
         while (pos < tokens.size() && tokens[pos].getType() != TokenType::EOF_OF_FILE) {

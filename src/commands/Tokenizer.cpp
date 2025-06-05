@@ -1,3 +1,14 @@
+/**
+ * @file Tokenizer.cpp
+ * @brief Implementación del analizador léxico para Setker
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación completa del analizador léxico,
+ * incluyendo el reconocimiento de tokens, manejo de comentarios, cadenas,
+ * números, operadores y palabras clave del lenguaje Setker.
+ */
+
 #include "Tokenizer.h"
 #include "Parser.h"
 
@@ -9,22 +20,43 @@
 #include "../def/Keywords.h"
 
 namespace Tokenizer {
-    auto tokens = std::pmr::vector<Token>();
-    int line = 1;
-    int exitCode = 0;
+    // Variables globales del tokenizer
+    auto tokens = std::pmr::vector<Token>();  ///< Vector de tokens identificados
+    int line = 1;                             ///< Número de línea actual
+    int exitCode = 0;                         ///< Código de salida del proceso
 
+    /**
+     * @brief Verifica si un carácter es una letra o guión bajo
+     * @param c Carácter a verificar
+     * @return bool true si es letra o '_', false en caso contrario
+     */
     bool isLetter(char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
     }
 
+    /**
+     * @brief Verifica si un carácter es alfanumérico
+     * @param c Carácter a verificar
+     * @return bool true si es letra, dígito o '_', false en caso contrario
+     */
     bool isAlphaNumeric(char c) {
         return isLetter(c) || isdigit(c);
     }
 
+    /**
+     * @brief Verifica si un carácter es un dígito
+     * @param c Carácter a verificar
+     * @return bool true si es dígito, false en caso contrario
+     */
     bool isDigit(char c) {
         return c >= '0' && c <= '9';
     }
 
+    /**
+     * @brief Procesa comentarios multi-línea delimitados por <| y |>
+     * @param file_contents Contenido del archivo
+     * @param i Índice actual en el archivo (se modifica por referencia)
+     */
     void valorateWhitespaces(const std::string &file_contents, int &i) {
         for (int j = i + 1; j < file_contents.size(); j++) {
             if (file_contents[j] == '|' && file_contents[j + 1] == '>') {
@@ -34,6 +66,11 @@ namespace Tokenizer {
         }
     }
 
+    /**
+     * @brief Procesa identificadores y palabras clave
+     * @param file_contents Contenido del archivo
+     * @param i Índice actual en el archivo (se modifica por referencia)
+     */
     void valorateString(const std::string &file_contents, int &i) {
         for (int j = i + 1; j <= file_contents.size(); j++) {
             if (j == file_contents.size() || file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t' || !isAlphaNumeric(file_contents[j])) {
@@ -45,6 +82,11 @@ namespace Tokenizer {
         }
     }
 
+    /**
+     * @brief Procesa literales numéricos (enteros y decimales)
+     * @param file_contents Contenido del archivo
+     * @param i Índice actual en el archivo (se modifica por referencia)
+     */
     void valorateNumber(const std::string &file_contents, int &i) {
         for (int j = i + 1; j <= file_contents.size(); j++) {
             if (j == file_contents.size() || file_contents[j] == ' ' || file_contents[j] == '\n' || file_contents[j] == '\t' || !isDigit(file_contents[j])) {
@@ -58,12 +100,23 @@ namespace Tokenizer {
         }
     }
 
+    /**
+     * @brief Imprime todos los tokens identificados
+     */
     void printTokens() {
         for (auto &token : tokens) {
             std::cout << token.print() << std::endl;
         }
     }
 
+    /**
+     * @brief Función principal de tokenización
+     * @param file_contents Contenido del archivo a tokenizar
+     * 
+     * Recorre carácter por carácter el contenido del archivo,
+     * identificando y clasificando tokens según las reglas
+     * léxicas del lenguaje Setker.
+     */
     void valorateTokens(const std::string& file_contents) {
         for (int i = 0; i < file_contents.size(); i++) {
             switch (file_contents[i]) {

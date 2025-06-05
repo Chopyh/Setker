@@ -1,3 +1,24 @@
+/**
+ * @file Evaluator.cpp
+ * @brief Implementación del evaluador de expresiones y ejecutor de instrucciones
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación completa del evaluador que ejecuta
+ * programas escritos en Setker. Maneja la evaluación de expresiones, ejecución
+ * de instrucciones, gestión de variables y funciones, y todas las operaciones
+ * del lenguaje incluyendo aritmética, lógica y control de flujo.
+ * 
+ * Características implementadas:
+ * - Evaluación de expresiones aritméticas y lógicas
+ * - Manejo de variables locales y globales con scoping léxico
+ * - Funciones definidas por el usuario con soporte para closures
+ * - Estructuras de control (if/else, while, for)
+ * - Instrucciones print y return
+ * - Función nativa clock() para obtener tiempo actual
+ * - Manejo robusto de errores de tiempo de ejecución
+ */
+
 #include "Evaluator.h"
 #include "Parser.h"
 #include "../def/Environment.h"
@@ -12,29 +33,62 @@ using namespace TokenTree;
 using namespace Parser;
 
 namespace Evaluator {
-    // El Value con FunctionPtr viene desde Evaluator.h
+    // Alias para Environment para mayor claridad
     using TokenTree::Environment;
 
-    // Analiza y devuelve el AST sin imprimir
+    /**
+     * @brief Función auxiliar para parsear AST desde tokens
+     * @param tokens Vector de tokens
+     * @return std::unique_ptr<ASTNode> AST resultante
+     */
     std::unique_ptr<ASTNode> parseAST(const std::pmr::vector<Token>& tokens) {
         // Usa la función interna de Parser para construir el AST
         // Requiere exponer parseAST en Parser
         return Parser::parseAST(tokens);
     }
 
+    /**
+     * @brief Determina si un valor es "verdadero" en contexto booleano
+     * @param v Valor a evaluar
+     * @return bool true si el valor es verdadero, false en caso contrario
+     * 
+     * Implementa las reglas de truthiness de Setker:
+     * - nil es false
+     * - false es false
+     * - Todo lo demás es true
+     */
     bool isTruthy(const Value& v) {
         if (std::holds_alternative<std::monostate>(v)) return false;
         if (auto b = std::get_if<bool>(&v)) return *b;
         return true;
     }
 
+    // Declaraciones de función para evaluación con entorno
     Value evalNode(const ASTNode* node, std::shared_ptr<Environment> env);
 
+    /**
+     * @brief Evaluación con entorno global por defecto
+     * @param node Nodo a evaluar
+     * @return Value Resultado de la evaluación
+     */
     Value evalNode(const ASTNode* node) {
         static std::shared_ptr<Environment> globalEnv = std::make_shared<Environment>();
         return evalNode(node, globalEnv);
     }
 
+    /**
+     * @brief Función principal de evaluación con entorno específico
+     * @param node Nodo del AST a evaluar
+     * @param env Entorno de ejecución
+     * @return Value Resultado de la evaluación
+     * @throws Error Para errores de tiempo de ejecución
+     * @throws ReturnException Para instrucciones return
+     * 
+     * Esta función implementa el núcleo del intérprete, manejando todos
+     * los tipos de nodos del AST y ejecutando las operaciones correspondientes.
+     * Utiliza recursión para evaluar subexpresiones y mantiene el estado
+     * del programa a través del entorno de variables.
+     */
     Value evalNode(const ASTNode* node, std::shared_ptr<Environment> env) {
         using Type = ASTNode::Type;
 

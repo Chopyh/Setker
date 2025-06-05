@@ -1,3 +1,13 @@
+/**
+ * @file Tokens.cpp
+ * @brief Implementación de la clase Token y sus métodos
+ * @author Javier
+ * @date 2025
+ * 
+ * Este archivo contiene la implementación de todos los métodos de la clase Token,
+ * incluyendo constructores, getters y el método de serialización para debugging.
+ */
+
 #include "Tokens.h"
 
 #include <cmath>
