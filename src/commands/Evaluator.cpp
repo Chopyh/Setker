@@ -176,18 +176,47 @@ namespace Evaluator {
                 // Handle grouping
                 if (op == "group" && children.size() == 1) {
                     return evalNode(children[0].get(), env);
-                }
-                // Handle binary arithmetic operators
+                }                // Handle binary arithmetic operators
                 if (children.size() == 2 && (op == "+" || op == "-" || op == "*" || op == "/" || op == "%")) {
                     Value lv = evalNode(children[0].get(), env);
                     Value rv = evalNode(children[1].get(), env);
                     if (op == "+") {
-                        // String concatenation
+                        // String concatenation con conversión automática
                         if (auto ls = std::get_if<std::string>(&lv)) {
                             if (auto rs = std::get_if<std::string>(&rv)) {
                                 return *ls + *rs;
+                            } else if (auto rd = std::get_if<double>(&rv)) {
+                                // String + Number
+                                std::string numStr = (std::floor(*rd) == *rd) ? 
+                                    std::to_string((long long)*rd) : std::to_string(*rd);
+                                return *ls + numStr;
+                            } else if (auto rb = std::get_if<bool>(&rv)) {
+                                // String + Boolean
+                                return *ls + (*rb ? "true" : "false");
+                            } else if (std::holds_alternative<std::monostate>(rv)) {
+                                // String + nil
+                                return *ls + "nil";
+                            }
+                        } else if (auto ld = std::get_if<double>(&lv)) {
+                            if (auto rs = std::get_if<std::string>(&rv)) {
+                                // Number + String
+                                std::string numStr = (std::floor(*ld) == *ld) ? 
+                                    std::to_string((long long)*ld) : std::to_string(*ld);
+                                return numStr + *rs;
+                            }
+                        } else if (auto lb = std::get_if<bool>(&lv)) {
+                            if (auto rs = std::get_if<std::string>(&rv)) {
+                                // Boolean + String
+                                return (*lb ? "true" : "false") + *rs;
+                            }
+                        } else if (std::holds_alternative<std::monostate>(lv)) {
+                            if (auto rs = std::get_if<std::string>(&rv)) {
+                                // nil + String
+                                return "nil" + *rs;
                             }
                         }
+                        
+                        // Si llegamos aquí con +, pero no es concatenación válida, seguir con aritmética
                     }
                     // Operaciones numéricas (-, *, /, %) requieren números
                     if (!std::holds_alternative<double>(lv) || !std::holds_alternative<double>(rv)) {
